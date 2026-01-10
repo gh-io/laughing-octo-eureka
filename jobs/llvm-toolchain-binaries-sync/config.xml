@@ -1,0 +1,60 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <scm class="hudson.scm.NullSCM"/>
+  <assignedNode>master</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <jenkins.triggers.ReverseBuildTrigger>
+      <spec></spec>
+      <upstreamProjects>llvm-toolchain-binaries, llvm-toolchain-20-binaries, llvm-toolchain-19-binaries,llvm-toolchain-21-binaries,llvm-toolchain-18-binaries,llvm-defaults-binaries, </upstreamProjects>
+      <threshold>
+        <name>UNSTABLE</name>
+        <ordinal>1</ordinal>
+        <color>YELLOW</color>
+        <completeBuild>true</completeBuild>
+      </threshold>
+    </jenkins.triggers.ReverseBuildTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>required_version=&quot;5.3.0-1.3&quot;
+
+# Check if reprepro is installed and get its version
+if dpkg -s reprepro &amp;&gt; /dev/null; then
+    reprepro_version=$(dpkg -s reprepro | grep &apos;^Version:&apos; | awk &apos;{print $2}&apos;)
+else
+    echo &quot;Error: reprepro not found. Please install it first.&quot;
+    exit 1
+fi
+
+# Compare the installed version with the required version using dpkg --compare-versions
+if dpkg --compare-versions &quot;$reprepro_version&quot; &quot;ge&quot; &quot;$required_version&quot;; then
+    echo &quot;Reprepro version $reprepro_version is at least $required_version.&quot;
+else
+    echo &quot;Error: reprepro version $reprepro_version is not at least $required_version.&quot;
+    exit 1
+fi
+sudo /usr/bin/chown -R jenkins. /srv/repository/unstable/
+bash ~/sync-form-other-arch.sh unstable $HOST_S390X s390x
+bash ~/sync-form-other-arch.sh unstable $HOST_ARM64 arm64
+bash /srv/repository/sync-to-llvm.sh unstable</command>
+      <configuredLocalRules/>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.tasks.Mailer plugin="mailer@509.vc54d23fc427e">
+      <recipients>sylvestre@debian.org</recipients>
+      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
+  </publishers>
+  <buildWrappers/>
+</project>

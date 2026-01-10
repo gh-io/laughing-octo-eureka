@@ -1,0 +1,6 @@
+test/
+  Linker/
+    ident.ll
+    Inputs/
+      ident.a.ll
+      ident.b.ll

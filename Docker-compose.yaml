@@ -1,0 +1,11 @@
+# Deploy with docker on Linux:
+docker run --runtime nvidia --gpus all \
+	--name my_vllm_container \
+	-v ~/.cache/huggingface:/root/.cache/huggingface \
+ 	--env "HUGGING_FACE_HUB_TOKEN=<secret>" \
+	-p 8000:8000 \
+	--ipc=host \
+	vllm/vllm-openai:latest \
+	--model LiquidAI/LFM2-VL-1.6B
+# Load and run the model:
+docker exec -it my_vllm_container bash -c "vllm serve LiquidAI/LFM2-VL-1.6B"

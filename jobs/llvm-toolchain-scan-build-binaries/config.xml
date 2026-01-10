@@ -1,0 +1,104 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<matrix-project plugin="matrix-project@840.v812f627cb_578">
+  <actions/>
+  <description>Build with scan-build&#xd;
+Run all the tests&#xd;
+Generate the reports&#xd;
+&#xd;
+Only build amd64</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>3</numToKeep>
+        <artifactDaysToKeep>10</artifactDaysToKeep>
+        <artifactNumToKeep>10</artifactNumToKeep>
+        <removeLastBuild>false</removeLastBuild>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <assignedNode>master</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <axes>
+    <hudson.matrix.TextAxis>
+      <name>architecture</name>
+      <values>
+        <string>amd64</string>
+      </values>
+    </hudson.matrix.TextAxis>
+    <hudson.matrix.TextAxis>
+      <name>distribution</name>
+      <values>
+        <string>bookworm</string>
+      </values>
+    </hudson.matrix.TextAxis>
+    <hudson.matrix.LabelAxis>
+      <name>label</name>
+      <values>
+        <string>amd64</string>
+      </values>
+    </hudson.matrix.LabelAxis>
+  </axes>
+  <builders>
+    <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@749.vfb_dca_a_9b_6549">
+      <project>llvm-toolchain-source</project>
+      <filter>*</filter>
+      <target></target>
+      <includeBuildNumberInTargetPath>false</includeBuildNumberInTargetPath>
+      <excludes></excludes>
+      <selector class="hudson.plugins.copyartifact.StatusBuildSelector"/>
+      <doNotFingerprintArtifacts>false</doNotFingerprintArtifacts>
+    </hudson.plugins.copyartifact.CopyArtifact>
+    <hudson.tasks.Shell>
+      <command>export DEB_BUILD_OPTIONS=&quot;scan-build nocheck&quot;
+export ADT=&quot;skip&quot;
+export BUILD_ONLY=true
+CURRENT_PATH=$(pwd)
+if test ! -d $REPOSITORY; then echo &quot;$REPOSITORY is not mounted&quot;; exit 1; fi
+/usr/bin/build-and-provide-package
+cd /srv/repository/
+rm -rf scan-build
+tar zxvf $CURRENT_PATH/scan-build.tar.gz
+</command>
+      <configuredLocalRules/>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command>cd /srv/repository/scan-build/
+/usr/bin/rsync --delay-updates --stats --delete -r * sledru@llvm.org:/opt/reports/scan-build/
+</command>
+      <configuredLocalRules/>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.tasks.Mailer plugin="mailer@489.vd4b_25144138f">
+      <recipients>sylvestre@debian.org</recipients>
+      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.47">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+      <disableDeferredWipeout>false</disableDeferredWipeout>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+  </buildWrappers>
+  <executionStrategy class="hudson.matrix.DefaultMatrixExecutionStrategyImpl">
+    <runSequentially>false</runSequentially>
+    <touchStoneCombinationFilter></touchStoneCombinationFilter>
+    <touchStoneResultCondition>
+      <name>SUCCESS</name>
+      <ordinal>0</ordinal>
+      <color>BLUE</color>
+      <completeBuild>true</completeBuild>
+    </touchStoneResultCondition>
+  </executionStrategy>
+</matrix-project>

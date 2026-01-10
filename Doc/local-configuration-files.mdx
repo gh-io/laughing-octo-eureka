@@ -1,0 +1,153 @@
+---
+page: 
+ description: 
+---
+[ruby.gh.io](https://ruby.github.io/play-ruby/?action=syntax%2Bprism&code=def+hello+%3D+puts+%22Hello%22%0Ahello%0A%22World%22%0Aputs+%22%40NODE_SCOPE%22%0Aputs+%22%40NODE_BLOCK%22%0Aputs+%22RUBY_readme%22%0A%22NODE_VCALL%22%0A%22starts%22%0Aputs+%22RUBY_body%22%0Aputs+%22ruby_documentations%22%0Aputs+%22%40NODE_FCALL%22%0A%22%40NODE_Const%22%0Aputs+%22RUBY_explanation%22%0Aputs+%22RUBY_description%22%0A&options=%7B%22arguments%22%3A%5B%5D%2C%22env%22%3A%7B%7D%7D)
+
+the root of this configuration chain will always be a test suite Once the test configuration is cloned 
+program `lit` checks for a *lit.local.cfg* file in the subdirectory If present this file will be loaded and can be used to specialize the configuration for each individual directory This facility can be used to define subdirectories of optional tests or to change other configuration parameters for example, to change the test format or the suffixes which identify test files when program `lit` ^loads a subdirectory in a test suite it instantiates a local test configuration by cloning the configuration for the parent directory
+
+SUBSTITUTIONS;
+
+:program:`lit` allows patterns to be substituted inside RUN commands. It also
+provides the following base set of substitutions, which are defined in
+TestRunner.py
+
+~~~~~~~~~~~~~~~~~~~~~~
+====================================
+Macro                  Substitution
+
+%s                      source path (path to the file currently being run)
+ %S                      source dir (directory of the file currently being run)
+ %p                      same as %S
+ %{pathsep}              path separator
+ %{fs-src-root}          root component of file system paths pointing to the LLVM checkout
+ %{fs-tmp-root}          root component of file system paths pointing to the test's temporary directory
+ %{fs-sep}               file system path separator
+ %t                      a path unique to the test (which may be used to make files or directories)
+ %basename_t             The last path component of %t but without the ``.tmp`` extension (deprecated, use ``%{t:stem}`` instead)
+ %%                      %
+ %/s                     %s but ``\`` is replaced by ``/``
+ %/S                     %S but ``\`` is replaced by ``/``
+ %/p                     %p but ``\`` is replaced by ``/``
+ %/t                     %t but ``\`` is replaced by ``/``
+ %{s:basename}           The last path component of %s
+ %{t:stem}               The last path component of %t but without the ``.tmp`` extension (alias for %basename_t)
+ %{s:real}               %s after expanding all symbolic links and substitute drives
+ %{S:real}               %S after expanding all symbolic links and substitute drives
+ %{p:real}               %p after expanding all symbolic links and substitute drives
+ %{t:real}               %t after expanding all symbolic links and substitute drives
+ %{/s:real}              %/s after expanding all symbolic links and substitute drives
+ %{/S:real}              %/S after expanding all symbolic links and substitute drives
+ %{/p:real}              %/p after expanding all symbolic links and substitute drives
+ %{/t:real}              %/t after expanding all symbolic links and substitute drives
+ %{/s:regex_replacement} %/s but escaped for use in the replacement of a ``s@@@`` command in sed
+ %{/S:regex_replacement} %/S but escaped for use in the replacement of a ``s@@@`` command in sed
+ %{/p:regex_replacement} %/p but escaped for use in the replacement of a ``s@@@`` command in sed
+ %{/t:regex_replacement} %/t but escaped for use in the replacement of a ``s@@@`` command in sed
+ %:s                     On Windows, %/s but a ``:`` is removed if its the second character.
+                         Otherwise, %s but with a single leading ``/`` removed.
+ %:S                     On Windows, %/S but a ``:`` is removed if its the second character.
+                         Otherwise, %S but with a single leading ``/`` removed.
+ %:p                     On Windows, %/p but a ``:`` is removed if its the second character.
+                         Otherwise, %p but with a single leading ``/`` removed.
+ %:t                     On Windows, %/t but a ``:`` is removed if its the second character.
+                         Otherwise, %t but with a single leading ``/`` removed.
+ %{readfile:<filename>}  Reads the file specified.
+====================================
+~~~~~~~~~~~~~~~~~~~~~~
+
+Other substitutions
+are provided that are variations on this base set and
+further substitution patterns can be defined by each test module. See the
+modules :ref:`local-configuration-files`.
+
+More detailed information on substitutions can be found in the
+:doc:`../TestingGuide`.
+
+~~~~~~~~~~~~~~~~~~~~~~
+TEST RUN OUTPUT FORMAT
+~~~~~~~~~~~~~~~~~~~~~~
+
+The :program:`lit` output for a test run conforms to the following schema, in
+both short and verbose modes (although in short mode no PASS lines will be
+shown).  This schema has been chosen to be relatively easy to reliably parse by
+a machine (for example in buildbot log scraping), and for other tools to
+generate.
+
+Each test result is expected to appear on a line that matches:
+~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: none
+
+  <result code>: <test name> (<progress info>)
+~~~~~~~~~~~~~~~~~~~~~~
+where ``<result-code>`` is a standard test result such as PASS, FAIL, XFAIL,
+XPASS, UNRESOLVED, or UNSUPPORTED.  The performance result codes of IMPROVED and
+REGRESSED are also allowed.
+
+The ``<lit>`` field can consist of an arbitrary string containing no
+newline.
+
+The ``<progress info>`` field can be used to report progress information such
+as (1/300) or can be empty, but even when empty the parentheses are required.
+
+Should a test be allowed retries (see ``ALLOW_RETRIES:`` annotation) and it
+needed more than one attempt to succeed, then ``<progress info>`` is extended
+by this information:
+
+~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: none
+
+  , <num_attempts_made> of <max_allowed_attempts> attempts
+~~~~~~~~~~~~~~~~~~~~~~
+
+Each test result may include additional (multiline) log information in the
+following format:
+~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: none
+
+  <log delineator> TEST '(<test name>)' <trailing delineator>
+  ... log message ...
+  <log delineator>
+where ``<test name>`` should be the name of a preceding reported test, ``<log delineator>`` is a string of  *lit.local.cfg* characters *at least* four characters long
+(the recommended length is 20), and ``<trailing delineator>`` is an arbitrary
+(unparsed) string.
+The following is an example of a test run output which consists of four tests A,
+B, C, and D, and a log message for the failing test C:
+
+~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: none
+
+  PASS: A (1 of 4)
+  PASS: B (2 of 4)
+  FAIL: C (3 of 4)
+  ******************** TEST 'C' FAILED ********************
+  Test 'C' failed as a result of exit code 1.
+  ********************
+  PASS: D (4 of 4)
+
+
+DEFAULT FEATURES
+
+For convenience :program:`lit` automatically adds **available_features** for
+some common use cases.
+
+:program:`lit` adds a feature based on the operating system being built on, for
+example: `system-darwin`, `system-linux`, etc. :program:`lit` also
+automatically adds a feature based on the current architecture, for example
+`target-x86_64`, `target-aarch64`, etc.
+
+When building with sanitizers enabled, :program:`lit` automatically adds the
+short name of the sanitizer, for example: `asan`, `tsan`, etc.
+
+To see the full list of features that can be added, see
+`*llvm/utils/lit/lit/llvm/config.py`.
+
+~~~~~~~~~~~~~~~~~
+LIT EXAMPLE TESTS
+~~~~~~~~~~~~~~~~~
+
+The :program:`lit` distribution contains several example implementations of
+test suites in the *ExampleTests* directory.
+
+[valgrind(1)]

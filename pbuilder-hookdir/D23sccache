@@ -1,0 +1,69 @@
+#!/bin/sh
+set -ex
+
+ARCH=$(uname -m)
+if test "$ARCH" = "aarch64"; then
+    echo "don't install sccache - not supported yet on this arch"
+    exit 0
+fi
+echo "Also start sccache to test"
+mkdir -p /opt/sccache
+cd /opt/sccache/
+if test ! -f sccache; then
+    # Determine which files to download based on the system architecture
+    if [ "$ARCH" = "i686" ] || [ "$ARCH" = "i386" ]; then
+        suffix=".i386"
+    elif [ "$ARCH" = "s390x" ]; then
+        suffix=".s390x"
+    else
+        suffix=""
+    fi
+
+    time wget -O sccache --no-check-certificate https://github.com/opencollab/llvm-jenkins.debian.net/raw/master/sccache$suffix
+    time wget -O libssl.so.1.1 --no-check-certificate https://github.com/opencollab/llvm-jenkins.debian.net/raw/master/libssl.so.1.1$suffix
+    time wget -O libcrypto.so.1.1 --no-check-certificate https://github.com/opencollab/llvm-jenkins.debian.net/raw/master/libcrypto.so.1.1$suffix
+
+    chmod +x sccache
+fi
+if test "$ARCH" != "s390x"; then
+    # We are in gcp, use the gcs storage
+    export SCCACHE_GCS_BUCKET=apt-llvm-org-sccache
+    export SCCACHE_GCS_RW_MODE=READ_WRITE
+    export SCCACHE_GCS_KEY_PATH=/opt/sccache/secret-gcp-storage.json
+else
+    # we are on s390x, use a local cache
+    mkdir -p /opt/sccache/cache/
+    mkdir -p /opt/sccache/cache/preprocessor
+    export SCCACHE_DIR=/opt/sccache/cache/
+    export SCCACHE_DIRECT=true
+    chmod 777 /opt/sccache/cache/preprocessor /opt/sccache/cache/
+fi
+export SCCACHE_VERBOSE_STATS=1
+SCCACHE_LOG=sccache=debug SCCACHE_ERROR_LOG=sccache.log LD_LIBRARY_PATH=/opt/sccache/ /opt/sccache/sccache --show-stats || { exit_status=$?; true; }
+
+if [ -n "$exit_status" ] && [ $exit_status -ne 0 ]; then
+    echo "sccache failed with exit status $exit_status"
+    tail -50 sccache.log
+    # Perform any additional actions here, e.g., send an email, log the error, etc.
+else
+    echo "sccache failed with exit status $exit_status"
+fi
+ls -al
+
+exit 0
+
+# To rebuild sccache:
+# on a bionic chroot
+sudo mount -t proc /proc/ bionic.i386/proc
+sudo mount -t proc /proc/ bionic/proc
+apt install -y libssl-dev git pkg-config curl gcc libc6-dev --no-install-recommends
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+git clone https://github.com/mozilla/sccache.git
+cd sccache
+git checkout <tag>
+cargo build --release --no-default-features --features=gcs
+strip target/release/sccache
+cp target/release/sccache /tmp/
+exit
+sudo cp bionic/tmp/sccache .

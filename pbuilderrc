@@ -1,0 +1,130 @@
+# Codenames for Debian suites according to their alias. Update these when
+# needed.
+UNSTABLE_CODENAME="sid"
+TESTING_CODENAME="trixie"
+STABLE_CODENAME="bookworm"
+#STABLE_BACKPORTS_SUITE="$STABLE_CODENAME-backports"
+
+# List of Debian suites.
+DEBIAN_SUITES=($UNSTABLE_CODENAME $TESTING_CODENAME $STABLE_CODENAME
+    "unstable" "testing" "stable" "buster" "bullseye" "bookworm" "trixie")
+
+# List of Ubuntu suites. Update these when needed.
+UBUNTU_SUITES=("questing" "plucky" "oracular" "noble" "mantic" "lunar" "kinetic" "jammy" "impish" "hirsute" "groovy" "focal" "eoan" "disco" "cosmic" "bionic" "artful" "zesty" "yakkety" "xenial" "wily" "vivid" "utopic" "trusty" "saucy" "raring" "quantal" "precise" "oneiric" "natty" "lucid" "hardy")
+
+
+# Mirrors to use. Update these to your preferred mirror.
+DEBIAN_MIRROR="cloudfront.debian.net/"
+
+if [ "${ARCH}" != 'i386' ] && [ "${ARCH}" != 'amd64' ]; then
+    UBUNTU_MIRROR="ports.ubuntu.com/ubuntu-ports/"
+else
+    UBUNTU_MIRROR="europe-west1.gce.archive.ubuntu.com/ubuntu/"
+    #www-ftp.lip6.fr/pub/linux/distributions/"
+fi
+
+# Optionally use the changelog of a package to determine the suite to use if
+# none set.
+if [ -z "${DIST}" ] && [ -r "debian/changelog" ]; then
+    DIST=$(dpkg-parsechangelog | awk '/^Distribution: / {print $2}')
+    # Use the unstable suite for Debian experimental packages.
+    if [ "${DIST}" == "experimental" ]; then
+        DIST="unstable"
+    fi
+fi
+
+# Optionally set a default distribution if none is used. Note that you can set
+# your own default (i.e. ${DIST:="unstable"}).
+: ${DIST:="$(lsb_release --short --codename)"}
+
+# Optionally change Debian codenames in $DIST to their aliases.
+case "$DIST" in
+    $UNSTABLE_CODENAME)
+        DIST="unstable"
+        ;;
+    $TESTING_CODENAME)
+        DIST="testing"
+        ;;
+    $STABLE_CODENAME)
+        DIST="stable"
+        ;;
+esac
+
+if test "$DIST" == "bookworm"; then
+# The cloudfront mirror is failing on:
+# E: The repository 'http://cloudfront.debian.net//debian bookworm Release' no longer has a Release file.
+  DEBIAN_MIRROR="deb.debian.org/"
+fi
+
+if test "$DIST" == "buster"; then
+  DEBIAN_MIRROR="archive.debian.org/"
+fi
+
+# Optionally set the architecture to the host architecture if none set. Note
+# that you can set your own default (i.e. ${ARCH:="i386"}).
+: ${ARCH:="$(dpkg --print-architecture)"}
+
+NAME="$DIST"
+if [ -n "${ARCH}" ]; then
+    NAME="$NAME-$ARCH"
+    unset DEBOOTSTRAPOPTS
+    DEBOOTSTRAPOPTS=("--arch" "$ARCH" "--no-check-gpg" "${DEBOOTSTRAPOPTS[@]}")
+fi
+BASETGZ="/var/cache/pbuilder/$NAME-base.tgz"
+DISTRIBUTION="$DIST"
+BUILDRESULT="/var/cache/pbuilder/$NAME/result/"
+APTCACHE="/var/cache/pbuilder/$NAME/aptcache/"
+BUILDPLACE="/var/cache/pbuilder/build/"
+
+# Use apt as resolver
+PBUILDERSATISFYDEPENDSCMD=/usr/lib/pbuilder/
+if [[ $DIST = xenial ]]; then
+	PBUILDERSATISFYDEPENDSCMD+=pbuilder-satisfydepends-aptitude
+else
+	PBUILDERSATISFYDEPENDSCMD+=pbuilder-satisfydepends-apt
+fi
+
+if $(echo ${DEBIAN_SUITES[@]} | grep -q $DIST); then
+    # Debian configuration
+    MIRRORSITE="http://$DEBIAN_MIRROR/debian/"
+    COMPONENTS="main"
+    if $(echo "$STABLE_CODENAME stable" | grep -q $DIST); then
+        EXTRAPACKAGES="$EXTRAPACKAGES"
+#        OTHERMIRROR="$OTHERMIRROR | deb http://www.backports.org/debian $STABLE_BACKPORTS_SUITE $COMPONENTS"
+    fi
+elif $(echo ${UBUNTU_SUITES[@]} | grep -q $DIST); then
+    # Ubuntu configuration
+    MIRRORSITE="http://$UBUNTU_MIRROR/"
+    COMPONENTS="main restricted universe multiverse"
+else
+    echo "Unknown distribution: $DIST"
+    exit 1
+fi
+if test ! -d /opt/cov-analysis/; then
+   mkdir -p /opt/cov-analysis/
+fi
+ADDITIONAL_BUILDRESULTS=(codecoverage.tar.gz scan-build.tar.gz sccache-stats.json)
+
+if [ "${ARCH}" == 'i386' ] || [ "${ARCH}" == 'amd64' ]; then
+   # Sccache needs network
+   # For now, only do it on intel CPU as it is in google cloud
+   USENETWORK=yes
+fi
+
+# ccache
+export CCACHE_DIR="/var/cache/pbuilder/ccache"
+#export PATH="/usr/lib/ccache:${PATH}"
+#EXTRAPACKAGES="$EXTRAPACKAGES ccache"
+BINDMOUNTS="/opt/cov-analysis/ ${CCACHE_DIR}"
+
+if [ "${ARCH}" == 'i386' -o "${ARCH}" == 'amd64' -o "${ARCH}" == 's390x' ]; then
+   BINDMOUNTS="${BINDMOUNTS} /opt/sccache/"
+fi
+
+# ubuntu is moving to zstd. So, make sure it is installed in the pbuilder
+case "$DIST" in
+    impish)
+        EXTRAPACKAGES="$EXTRAPACKAGES zstd"
+        ;;
+esac
+BUILDSUBDIR="source"

@@ -1,0 +1,34 @@
+#!/bin/sh
+set -ex
+cd /tmp/
+VER=3.20.5
+apt-get install --yes --no-install-recommends --force-yes curl libssl-dev
+DIST=$(lsb_release -sc)
+ID=$(lsb_release -is| awk '{print tolower($0)}')
+if test "$DIST" = "focal" -o "$DIST" = "xenial" -o "$DIST" = "bionic" -o "$DIST" = "buster" -o "$DIST" = "bullseye"; then
+	ARCH=$(uname -m)
+	if test "$ARCH" = "i686"; then
+		ARCH="i386"
+	fi
+	curl -o cmake.tar.gz  --insecure https://sylvestre.ledru.info/bordel/cmake-$VER-Linux-$ARCH.tar.gz
+	tar zxf cmake.tar.gz
+	mv cmake-* cmake
+fi
+
+# To port cmake to a different arch
+# /sbin/deboostrap bionic bionic
+# chroot bionic
+# echo "deb-src http://ports.ubuntu.com/ubuntu-ports bionic main" >> /etc/apt/sources.list
+# apt update
+# apt-get build-dep cmake
+# apt install wget libssl-dev
+# wget https://github.com/Kitware/CMake/releases/download/v3.20.5/cmake-3.20.5.tar.gz
+# tar zxvf cmake-3.20.5.tar.gz
+# cd cmake-3.20.5
+# ./bootstrap --prefix=/tmp/cmake-3.20.5 && make -j $(nproc) && make install
+# export ARCH=amd64
+# cd /tmp
+# strip cmake*/bin/*
+# tar zcvf cmake-3.20.5-Linux-$ARCH.tar.gz cmake-3.20.5
+# exit
+# scp bionic/tmp/*gz $HOST

@@ -1,0 +1,9 @@
+; RUN: split-file %s %t
+; RUN: llvm-link -S %t/a.ll %t/b.ll | FileCheck %s
+
+; CHECK: ...
+
+;--- a.ll
+...
+;--- b.ll
+...

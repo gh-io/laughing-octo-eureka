@@ -1,0 +1,44 @@
+#!/bin/sh
+set -v
+
+# debug:
+ls -al /tmp/
+ls -1d /tmp/scan-build-*
+
+dirs=$(ls -1d /tmp/scan-build-*)
+for d in $dirs; do
+    # cleanup temporary directories without too many files
+    # we should have +600 defects
+    c=$(ls -1 $d|wc -l)
+    if test $c -lt 20; then
+        rm -rf $d
+    fi
+done
+
+dir=$(ls -1d /tmp/scan-build-*|head -1|cut -d: -f1)
+echo "We think it is $dir"
+if test ! -d $dir; then
+    echo "No scan-build report found; skipping"
+    exit 0
+fi
+
+if test ! -d /tmp/buildd/source/; then
+    echo "Not a snapshot release"
+    exit 0
+fi
+
+cmd='cd /tmp/'
+echo $cmd
+eval $cmd
+cmd="mv $dir scan-build"
+echo $cmd
+eval $cmd
+cmd='tar czvf /tmp/buildd/scan-build.tar.gz scan-build/'
+echo $cmd
+eval $cmd
+cmd='cp /tmp/buildd/scan-build.tar.gz /tmp/buildd/source/'
+echo $cmd
+eval $cmd
+cmd='ls -al /tmp/buildd/source/scan-build.tar.gz /tmp/buildd/scan-build.tar.gz'
+echo $cmd
+eval $cmd
