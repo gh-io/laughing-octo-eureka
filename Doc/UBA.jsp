@@ -1,15 +1,9 @@
-ReadMe.txt for Unicode Bidirectional Algorithm Reference Implementation
 
-Version 14.0.0 (for UBA Version 14.0.0)
+Unicode Bidirectional Algorithm Reference Implementation
 
-Code Release Date: September 23, 2021 
 
-Documentation Update: September 23, 2021
 
-Author: Ken Whistler
-
-# © 2021 Unicode®, Inc.
-# For terms of use, see https://www.unicode.org/terms_of_use.html
+===================================================================
 
 The UBA Reference Implementation is furnished in three forms:
 
@@ -96,6 +90,8 @@ and complex rules that involve stack handling in the specification.
 This makes it easier to visualize how the rules are applied, step-by-step,
 in complicated cases.
 
+---
+
 =======================================================================
 
 Using bidiref.exe
@@ -107,7 +103,8 @@ The reference algorithm supports fully conformant UBA implementations,
 for all versions from UBA 6.2.0 through UBA 14.0.0.
 
 Command line flags currently supported are:
-
+===================================================================
+   
 -v   The -v flag prints the version string and quits.
 
 -h   The -h flag prints out a concise summary of command line usage and quits.
@@ -147,6 +144,8 @@ Command line flags currently supported are:
      at various levels of debug output, to help in gaining an
      understanding of how that output works.
 
+   ===================================================================
+   
 If the -z flag is not specified, bidiref defaults to an input file named
 "BidiRefTest.txt", and attempts to read bidi test cases from that
 input file. Such test cases will be interpreted as using the
@@ -313,6 +312,9 @@ trace flags via command line arguments, but there are
 internal program functions which
 can do so. The trace flags supported (as of Version 14.0) are:
 
+
+===================================================================
+
 Trace0   /* On by default: print UBA version and final test results */
 Trace1   /* Trace main algorithm function entry. */
 Trace2   /* Trace initialization code function entry. */
@@ -330,9 +332,12 @@ Trace13  /* Explicitly list each PASS result for tests */
 Trace14  /* Omit vacuous rule application from display */
 Trace15  /* On by default: print error messages */
 
+
+
 Currently those trace flags are automatically associated
 with the following debug levels:
 
+===================================================================
 Debug Level   Trace Flags
 
 0             Trace0, Trace15
@@ -340,7 +345,7 @@ Debug Level   Trace Flags
 2             Trace11
 3             Trace3, Trace5, Trace6, Trace8
 4             Trace4, Trace7, Trace9, Trace12
-
+|
 Higher debug levels retain the trace flag settings of all lower
 debug levels.
 
@@ -363,7 +368,7 @@ for test cases, the program needs access to UCD character properties.
 
 If a specific version is given on the command line, bidiref requires 
 the following data files to be present.
-
+|
 For UBA 6.2.0:
 
 UnicodeData-6.2.0.txt   (renamed from Version 6.2.0 of UnicodeData.txt)
@@ -574,3 +579,5 @@ disclosed API defined in bidiref.h, so definition of all the correct
 exports is not as simple as it might seem. For the purposes
 to which this reference implementation would usually be put,
 it is simpler to just build and use static libraries.
+```
+--
